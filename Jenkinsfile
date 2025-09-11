@@ -3,28 +3,37 @@ pipeline {
 
     environment {
         NODE_ENV = 'development'
-        SNYK_TOKEN = credentials('snyk-token') // Add your Snyk token in Jenkins Credentials
+        SNYK_TOKEN = credentials('snyk-token') // Add Snyk token in Jenkins Credentials
+        NODE_HOME = tool name: 'NodeJS 22.19', type: 'NodeJS'
+        PATH = "${env.NODE_HOME}/bin:${env.PATH}"
     }
 
     stages {
+        stage('Clean Workspace') {
+            steps {
+                echo "=== CLEANING WORKSPACE ==="
+                deleteDir() // Removes all files from previous builds
+            }
+        }
+
         stage('Checkout') {
             steps {
                 echo "=== CHECKOUT STAGE ==="
-                git branch: 'main', url: 'https://github.com/your-repo.git'
+                git branch: 'main', url: 'https://github.com/VivanReddy13/8.2CDevSecOps.git'
             }
         }
 
         stage('Install Dependencies') {
             steps {
                 echo "=== INSTALL DEPENDENCIES ==="
-                sh 'npm install'
+                // Use npm cache for faster installs
+                sh 'npm ci --cache .npm_cache'
             }
         }
 
         stage('Run Tests & Coverage') {
             steps {
                 echo "=== TESTS & COVERAGE ==="
-                // Ensure package.json has a script: "test:coverage": "jest --coverage"
                 sh 'npm run test:coverage'
             }
         }
@@ -32,11 +41,8 @@ pipeline {
         stage('Security Scan') {
             steps {
                 echo "=== SECURITY SCAN ==="
-                // Snyk scan
                 sh 'snyk auth $SNYK_TOKEN'
                 sh 'snyk test'
-                
-                // NPM audit as fallback
                 sh 'npm audit --audit-level=high'
             }
         }
